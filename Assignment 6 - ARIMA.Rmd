@@ -1,0 +1,186 @@
+---
+title: "Assignment 6- ARIMA"
+author: "Parth Thaker"
+date: "2023-11-22"
+output: html_document
+---
+
+```{r}
+
+library(fpp)
+library(fpp2)
+library(TTR)
+library(readxl)
+
+```
+
+## Import Data
+
+```{r}
+
+df <- read_excel("Sunspots_Dataset.xlsx")
+
+```
+
+## Converting to time series data 
+
+```{r}
+
+TS1 = ts(df$`Monthly Mean Total Sunspot Number`,start=c(2011,1), end=c(2021,1),frequency = 12)
+
+attributes(TS1)
+plot(TS1)
+ndiffs(TS1)
+Acf(TS1)
+
+```
+# we get ndiffs values as 1 which means we need lag difference of 1 to get the stationary data 
+```{r}
+
+tsdisplay(TS1)
+
+```
+
+
+from the acf plot we see seasonality in the data 
+it plots the original time series but it tells you what the ACF and PACF is
+For a stationary time series, the ACF will drop to zero relatively quickly..
+In time series analysis, Autocorrelation Function (ACF) and the partial autocorrelation function (PACF) 
+plots are essential in providing the model’s orders such as p for AR and q for MA to select the best model for forecasting.
+
+The two blue dash lines represent the significant threshold levels. 
+Anything that spikes over these two lines reveals the significant correlations.
+When looking at ACF plot, we ignore the long spike at lag 0 (pointed by the blue arrow). For PACF, the line usually starts at 1.
+
+```{r}
+df1_diff1 <- diff(TS1, differences=1)
+df1_diff1
+
+```
+
+```{r}
+Acf(df1_diff1)
+plot(df1_diff1)
+
+```
+after taking the difference, the seasonality component is removed and the data becomes stationary
+
+##  Best model: ARIMA(5,1,0)
+
+```{r}
+tsdisplay(df1_diff1)
+auto_fit <- auto.arima(TS1, trace=TRUE, stepwise = FALSE)
+
+```
+
+  
+
+Output Summary: Best model is ARIMA(5,1,0)  represents the non-seasonal part of the model. The model includes one lag of the dependent variable (1,1,0) represents the seasonal part of the model. Indicates that first differences are taken at seasonal lag 12 because it is a monthly data with a seasonality of [12] with drift: indicates that the model includes a drift term. The model indicates that it considers the influence of both recent values and values from the same season in the previous year.
+
+```{r}
+
+auto_fit
+attributes(auto_fit)
+plot(forecast(auto_fit,h=5,level=c(99.5)))
+     
+```
+Series: TS1 
+ARIMA(5,1,0) 
+
+Coefficients:
+          ar1      ar2      ar3      ar4      ar5
+      -0.3290  -0.2137  -0.2586  -0.1426  -0.2752
+s.e.   0.0886   0.0944   0.0937   0.0951   0.0895
+
+sigma^2 = 248.7:  log likelihood = -499
+AIC=1010   AICc=1010.75   BIC=1026.73
+
+# Residual Analysis 
+
+```{r}
+
+Acf(auto_fit$residuals)
+Box.test(residuals(auto_fit), lag=20, type="Ljung")
+plot.ts(residuals(auto_fit))
+hist(auto_fit$residuals)
+
+```
+ Perform and Plot the forecast for the next five periods
+ 
+```{r}
+plot(forecast(auto_fit,h=5,level=c(99.5)))
+Acf(TS1)
+Acf(df1_diff1)
+Acf(auto_fit$residuals)
+plot.ts(residuals(auto_fit))
+hist(auto_fit$residuals)
+tsdiag(auto_fit)
+
+```
+
+
+```{r}
+
+nsdiffs(TS1)
+
+```
+
+```{r}
+
+ndiffs(TS1)
+
+```
+
+
+```{r}
+
+ndiffs((diff(TS1,4)))
+
+```
+
+```{r}
+tsdisplay(diff(diff(TS1,4)))
+
+```
+
+```{r}
+fit3 <- auto.arima(TS1,trace=TRUE, stepwise = FALSE )
+
+```
+
+```{r}
+fit3
+Acf(fit3$residuals)
+
+```
+```{r}
+plot.ts(residuals(fit3))
+
+```
+```{r}
+
+hist(fit3$residuals)
+
+```
+from the Ljung test we can see that the 
+X-squared = 18.826, df = 20, p-value = 0.5331
+
+from the test statistic Q(x-squared) is 18.26 and the 
+p-value of the test is 0.53 which is greater that 0.05
+and therefore we accept the null hypothesis and the 
+data values are independent.
+
+
+even from the tsdiag results we can see that the p-values are 
+above the significant threshold(above 0.05) and so we can accept the null 
+hypothesis
+
+
+
+
+ 
+
+
+
+
+
